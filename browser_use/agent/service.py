@@ -562,17 +562,17 @@ class Agent:
 		self.history.save_to_file(file_path)
 
 	def create_history_gif(
-		self,
-		output_path: str = 'agent_history.gif',
-		duration: int = 3000,
-		show_goals: bool = True,
-		show_task: bool = True,
-		show_logo: bool = True,
-		font_size: int = 40,
-		title_font_size: int = 56,
-		goal_font_size: int = 44,
-		margin: int = 40,
-		line_spacing: float = 1.5,
+			self,
+			output_path: str = 'agent_history.gif',
+			duration: int = 3000,
+			show_goals: bool = True,
+			show_task: bool = True,
+			show_logo: bool = True,
+			font_size: int = 28,  # Increased base size
+			title_font_size: int = 36,
+			goal_font_size: int = 28,
+			margin: int = 20,
+			line_spacing: float = 1.0,
 	) -> None:
 		"""Create a GIF from the agent's history with overlaid task and goal text."""
 		if not self.history.history:
@@ -581,29 +581,15 @@ class Agent:
 
 		images = []
 
-		# Try to load nicer fonts
+		# Simplified font handling with single try/except
 		try:
-			# Try different font options in order of preference
-			font_options = ['Helvetica', 'Arial', 'DejaVuSans', 'Verdana']
-			font_loaded = False
-
-			for font_name in font_options:
-				try:
-					regular_font = ImageFont.truetype(font_name, font_size)
-					title_font = ImageFont.truetype(font_name, title_font_size)
-					goal_font = ImageFont.truetype(font_name, goal_font_size)
-					font_loaded = True
-					break
-				except OSError:
-					continue
-
-			if not font_loaded:
-				raise OSError('No preferred fonts found')
-
+			regular_font = ImageFont.truetype('arial.ttf', font_size)
+			title_font = ImageFont.truetype('arial.ttf', title_font_size)
+			goal_font = ImageFont.truetype('arial.ttf', goal_font_size)
 		except OSError:
+			logger.warning('Could not load Arial font, using default')
 			regular_font = ImageFont.load_default()
-			title_font = ImageFont.load_default()
-
+			title_font = regular_font
 			goal_font = regular_font
 
 		# Load logo if requested
@@ -668,13 +654,13 @@ class Agent:
 			logger.warning('No images found in history to create GIF')
 
 	def _create_task_frame(
-		self,
-		task: str,
-		first_screenshot: str,
-		title_font: ImageFont.FreeTypeFont,
-		regular_font: ImageFont.FreeTypeFont,
-		logo: Optional[Image.Image] = None,
-		line_spacing: float = 1.5,
+			self,
+			task: str,
+			first_screenshot: str,
+			title_font: ImageFont.FreeTypeFont,
+			regular_font: ImageFont.FreeTypeFont,
+			logo: Optional[Image.Image] = None,
+			line_spacing: float = 1.5,
 	) -> Image.Image:
 		"""Create initial frame showing the task."""
 		img_data = base64.b64decode(first_screenshot)
@@ -685,49 +671,43 @@ class Agent:
 		# Calculate vertical center of image
 		center_y = image.height // 2
 
-		# Draw "Task:" title with larger font
+		# Draw "Task:" title (no font size modification)
 		title = 'Task:'
-		title_font_size = title_font.size + 20  # Increase title font size by 20
-		larger_title_font = ImageFont.truetype(title_font.path, title_font_size)
-		title_bbox = draw.textbbox((0, 0), title, font=larger_title_font)
+		title_bbox = draw.textbbox((0, 0), title, font=title_font)
 		title_width = title_bbox[2] - title_bbox[0]
 		title_x = (image.width - title_width) // 2
-		title_y = center_y - 150  # Increased spacing from center
+		title_y = center_y - 150
 
 		draw.text(
 			(title_x, title_y),
 			title,
-			font=larger_title_font,
+			font=title_font,  # Use original font
 			fill=(255, 255, 255),
 		)
 
-		# Draw task text with increased font size
-		margin = 140  # Increased margin
+		# Draw task text (no font size modification)
+		margin = 140
 		max_width = image.width - (2 * margin)
-		larger_font = ImageFont.truetype(
-			regular_font.path, regular_font.size + 16
-		)  # Increase font size more
-		wrapped_text = self._wrap_text(task, larger_font, max_width)
+		wrapped_text = self._wrap_text(task, regular_font, max_width)
 
 		# Calculate line height with spacing
-		line_height = larger_font.size * line_spacing
+		line_height = regular_font.size * line_spacing
 
 		# Split text into lines and draw with custom spacing
 		lines = wrapped_text.split('\n')
 		total_height = line_height * len(lines)
 
 		# Start position for first line
-		text_y = center_y - (total_height / 2) + 50  # Shifted down slightly
+		text_y = center_y - (total_height / 2) + 50
 
 		for line in lines:
-			# Get line width for centering
-			line_bbox = draw.textbbox((0, 0), line, font=larger_font)
+			line_bbox = draw.textbbox((0, 0), line, font=regular_font)
 			text_x = (image.width - (line_bbox[2] - line_bbox[0])) // 2
 
 			draw.text(
 				(text_x, text_y),
 				line,
-				font=larger_font,
+				font=regular_font,  # Use original font
 				fill=(255, 255, 255),
 			)
 			text_y += line_height
